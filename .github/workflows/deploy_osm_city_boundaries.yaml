@@ -1,0 +1,38 @@
+name: deploy_osm_city_boundaries
+
+on:
+  push:
+    paths:
+      - "osm-city-boundaries/**"
+
+jobs:
+  job_id:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: "read"
+      id-token: "write"
+
+    steps:
+      # checkout source code
+      - uses: actions/checkout@v3
+
+      # authenticate to GCP
+      - id: "auth"
+        uses: "google-github-actions/auth@v0"
+        with:
+          credentials_json: "${{ secrets.GOOGLE_CREDENTIALS }}"
+
+      # Deploy cloud function
+      - id: "deploy"
+        uses: "google-github-actions/deploy-cloud-functions@v0"
+        with:
+          name: "hello_gcs"
+          runtime: python310
+          entry_point: "hello_gcs"
+          max_instances: 1
+          event_trigger_type: "google.cloud.storage.object.v1.finalized"
+          event_trigger_resource: "bucket-osm-9755a02f7829dc9a"
+
+      # Example of using the output
+      - id: "test"
+        run: 'curl "${{ steps.deploy.outputs.url }}"'
