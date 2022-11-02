@@ -107,7 +107,6 @@ def hello_pubsub(event, context):
     print('Hello {}!'.format(name))
 # [END functions_helloworld_pubsub]
 
-
 # [START functions_helloworld_storage]
 def hello_gcs(event, context):
     """Background Cloud Function to be triggered by Cloud Storage.
