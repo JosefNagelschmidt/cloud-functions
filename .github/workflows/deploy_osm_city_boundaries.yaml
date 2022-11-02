@@ -28,6 +28,7 @@ jobs:
         with:
           name: "hello_gcs"
           runtime: python310
+          source_dir: "${{GITHUB_WORKSPACE}}/osm-city-boundaries/"
           entry_point: "hello_gcs"
           max_instances: 1
           event_trigger_type: "google.storage.object.finalize"
