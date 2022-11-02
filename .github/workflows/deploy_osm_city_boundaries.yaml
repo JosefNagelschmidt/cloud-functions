@@ -33,7 +33,3 @@ jobs:
           max_instances: 1
           event_trigger_type: "google.storage.object.finalize"
           event_trigger_resource: "projects/tokyo-house-366821/buckets/bucket-osm-9755a02f7829dc9a"
-
-      # Example of using the output
-      - id: "test"
-        run: 'curl "${{ steps.deploy.outputs.url }}"'
