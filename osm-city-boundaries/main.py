@@ -1,25 +1,21 @@
-import functions_framework
+def hello_gcs(event, context):
+    """Background Cloud Function to be triggered by Cloud Storage.
+       This generic function logs relevant data when a file is changed,
+       and works for all Cloud Storage CRUD operations.
+    Args:
+        event (dict):  The dictionary with data specific to this type of event.
+                       The `data` field contains a description of the event in
+                       the Cloud Storage `object` format described here:
+                       https://cloud.google.com/storage/docs/json_api/v1/objects#resource
+        context (google.cloud.functions.Context): Metadata of triggering event.
+    Returns:
+        None; the output is written to Cloud Logging
+    """
 
-
-# Triggered by a change in a storage bucket
-@functions_framework.cloud_event
-def hello_gcs(cloud_event):
-    data = cloud_event.data
-
-    event_id = cloud_event["id"]
-    event_type = cloud_event["type"]
-
-    bucket = data["bucket"]
-    name = data["name"]
-    metageneration = data["metageneration"]
-    timeCreated = data["timeCreated"]
-    updated = data["updated"]
-
-    print(f"Event ID: {event_id}")
-    print(f"Event type: {event_type}")
-    print(f"Bucket: {bucket}")
-    print(f"File: {name}")
-    print(f"Metageneration: {metageneration}")
-    print(f"Created: {timeCreated}")
-    print(f"Updated: {updated}")
-
+    print('Event ID: {}'.format(context.event_id))
+    print('Event type: {}'.format(context.event_type))
+    print('Bucket: {}'.format(event['bucket']))
+    print('File: {}'.format(event['name']))
+    print('Metageneration: {}'.format(event['metageneration']))
+    print('Created: {}'.format(event['timeCreated']))
+    print('Updated: {}'.format(event['updated']))
