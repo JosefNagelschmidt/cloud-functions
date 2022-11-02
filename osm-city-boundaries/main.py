@@ -47,7 +47,7 @@ def hello_gcs(event, context):
     bucket = storage_client.bucket(event['bucket'])
     blob = bucket.blob(event['name'])
 
-    data = json.loads(blob.download_as_string(client=None))
+    data = json.loads(blob.download_as_string(client=storage_client))
 
     r = requests.get('https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];relation["name"="Köln"]["admin_level"="6"];out body;>;out skel qt;').json()
 
