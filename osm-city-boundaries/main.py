@@ -16,7 +16,6 @@ import json
 
 import functions_framework
 import requests
-from geojson import dump
 from google.cloud import storage
 from osm2geojson import json2geojson
 
@@ -56,7 +55,7 @@ def hello_gcs(event, context):
     bucket = storage_client.bucket("bucket-osm-cities-9755a02f7829dc9a")
     blob = bucket.blob("cologne.geojson")
 
-    blob.upload_from_string(out)
+    blob.upload_from_string(json.dumps(out))
 
 
 
