@@ -13,6 +13,7 @@
 # limitations under the License.
 
 import json
+from datetime import date
 
 import functions_framework
 import requests
@@ -46,16 +47,13 @@ def hello_gcs(event, context):
     bucket = storage_client.bucket(event['bucket'])
     blob = bucket.blob(event['name'])
 
-    data = json.loads(blob.download_as_string(client=storage_client))
-    r = requests.get('https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];relation["name"="Köln"]["admin_level"="6"];out body;>;out skel qt;').json()
-
-
-    out = json2geojson(data=r)
+    query_config = json.loads(blob.download_as_string(client=storage_client))
+    geodata = requests.get(f'https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];relation["name"={query_config["city"]}]["admin_level"={query_config["admin_level"]}];out body;>;out skel qt;').json()
+    transformed_geodata = json2geojson(data=geodata)
 
     bucket = storage_client.bucket("bucket-osm-cities-9755a02f7829dc9a")
-    blob = bucket.blob("cologne.geojson")
-
-    blob.upload_from_string(json.dumps(out))
+    blob = bucket.blob(f'{query_config["city"]}-{query_config["admin_level"]}-{str(date.today())}.geojson')
+    blob.upload_from_string(json.dumps(transformed_geodata))
 
 
 
