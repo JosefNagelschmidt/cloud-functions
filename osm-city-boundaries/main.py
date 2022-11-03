@@ -48,11 +48,16 @@ def hello_gcs(event, context):
     blob = bucket.blob(event['name'])
 
     query_config = json.loads(blob.download_as_string(client=storage_client))
-    geodata = requests.get(f'https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];relation["name"={query_config["city"]}]["admin_level"={query_config["admin_level"]}];out body;>;out skel qt;').json()
+    query = f"https://overpass-api.de/api/interpreter?data=[out:json][timeout:60];relation['name'='{query_config['city']}']['admin_level'='{query_config['admin_level']}'];out body;>;out skel qt;"
+
+    
+    geodata = requests.get(query).json()
     transformed_geodata = json2geojson(data=geodata)
 
     bucket = storage_client.bucket("bucket-osm-cities-9755a02f7829dc9a")
-    blob = bucket.blob(f'{query_config["city"]}-{query_config["admin_level"]}-{str(date.today())}.geojson')
+    blob_name = f"{query_config['city']}-{query_config['admin_level']}-{str(date.today())}.geojson"
+    
+    blob = bucket.blob(blob_name)
     blob.upload_from_string(json.dumps(transformed_geodata))
 
 
