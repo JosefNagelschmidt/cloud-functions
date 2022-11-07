@@ -32,4 +32,4 @@ jobs:
           entry_point: "hello_pubsub"
           max_instances: 1
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
-          event_trigger_resource: "pubsub-topic-google-directions-trigger"
+          event_trigger_resource: "projects/tokyo-house-366821/topics/pubsub-topic-google-directions-trigger"
