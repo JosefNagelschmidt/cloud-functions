@@ -21,7 +21,7 @@ def hello_pubsub(event, context):
     """
     import base64
 
-    print(f"This function was triggered by messageId {context.event_id} published at {context.timestamp} to {context.resource['name']}")
+    print(f"This function was triggered by messageId {context.event_id} published at {context.timestamp}.")
 
     if 'data' in event:
         name = base64.b64decode(event['data']).decode('utf-8')
