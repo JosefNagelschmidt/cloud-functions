@@ -59,4 +59,4 @@ def hello_pubsub(event, context):
         random_points = random_points_in_multipolygon(multipolygon=multipolygon, number=1)
         print(f"File: {file}")
         print(random_points[0].x)
-        print(random_points[0].x)
+        print(random_points[0].y)
