@@ -1,7 +1,6 @@
 import json
 from datetime import date
 
-import functions_framework
 import requests
 from google.cloud import storage
 from osm2geojson import json2geojson

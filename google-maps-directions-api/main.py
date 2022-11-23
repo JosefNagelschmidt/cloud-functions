@@ -1,3 +1,18 @@
+import json
+import sys
+from datetime import date
+
+import requests
+from google.cloud import storage
+from shapely.geometry import MultiPolygon, shape
+
+
+def list_blobs(client, bucket_name):
+    """Lists all the blobs in the bucket."""
+    blobs = client.list_blobs(bucket_name)
+    return [blob.name for blob in blobs]
+
+
 def hello_pubsub(event, context):
     """Background Cloud Function to be triggered by Pub/Sub.
     Args:
@@ -19,12 +34,18 @@ def hello_pubsub(event, context):
     Returns:
         None. The output is written to Cloud Logging.
     """
-    import base64
+    bucket_name = 'bucket-osm-cities-9755a02f7829dc9a'
+    storage_client = storage.Client()
+    bucket = storage_client.bucket(bucket_name)
 
-    print(f"This function was triggered by messageId {context.event_id} published at {context.timestamp}.")
+    file_list = list_blobs(client=storage_client,bucket_name=bucket_name)
 
-    if 'data' in event:
-        name = base64.b64decode(event['data']).decode('utf-8')
-    else:
-        name = 'World'
-    print('Hello {}!'.format(name))
+    for file in file_list:
+        blob = bucket.blob(file)
+        features = json.loads(blob.download_as_string(client=storage_client))["features"]
+        geo = [feature["geometry"] for feature in features if feature["geometry"]["type"] == "MultiPolygon"]
+        if len(geo) != 1:
+            sys.exit()
+
+        polygon: MultiPolygon = shape(geo[0])
+        
