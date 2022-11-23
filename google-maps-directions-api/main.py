@@ -2,15 +2,25 @@ import json
 import sys
 from datetime import date
 
+import numpy as np
 import requests
 from google.cloud import storage
-from shapely.geometry import MultiPolygon, shape
+from shapely.geometry import MultiPolygon, Point, shape
 
 
 def list_blobs(client, bucket_name):
     """Lists all the blobs in the bucket."""
     blobs = client.list_blobs(bucket_name)
     return [blob.name for blob in blobs]
+
+def random_points_in_multipolygon(multipolygon, number):
+    points = []
+    minx, miny, maxx, maxy = multipolygon.bounds
+    while len(points) < number:
+        pnt = Point(np.random.uniform(minx, maxx), np.random.uniform(miny, maxy))
+        if multipolygon.contains(pnt):
+            points.append(pnt)
+    return points
 
 
 def hello_pubsub(event, context):
@@ -47,5 +57,7 @@ def hello_pubsub(event, context):
         if len(geo) != 1:
             sys.exit()
 
-        polygon: MultiPolygon = shape(geo[0])
-        
+        multipolygon: MultiPolygon = shape(geo[0])
+        random_points = random_points_in_multipolygon(multipolygon=multipolygon, number=1)
+        print(random_points[0].x)
+        print(random_points[0].x)
