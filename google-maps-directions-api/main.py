@@ -1,9 +1,7 @@
 import json
 import sys
-from datetime import date
 
 import numpy as np
-import requests
 from google.cloud import storage
 from shapely.geometry import MultiPolygon, Point, shape
 
@@ -59,5 +57,6 @@ def hello_pubsub(event, context):
 
         multipolygon: MultiPolygon = shape(geo[0])
         random_points = random_points_in_multipolygon(multipolygon=multipolygon, number=1)
+        print(f"File: {file}")
         print(random_points[0].x)
         print(random_points[0].x)
