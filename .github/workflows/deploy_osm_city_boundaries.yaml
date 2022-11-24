@@ -30,6 +30,7 @@ jobs:
           runtime: python310
           source_dir: "./osm-city-boundaries/"
           entry_point: "load_city_boundaries"
+          memory_mb: "512"
           max_instances: 1
           event_trigger_type: "google.storage.object.finalize"
           event_trigger_resource: "projects/tokyo-house-366821/buckets/bucket-osm-9755a02f7829dc9a"
