@@ -48,11 +48,13 @@ def load_city_boundaries(event, context):
 
     # read in full population density file from GCS
     bucket = storage_client.bucket("bucket-general-config-files")
-    data_blob = bucket.blob("population_density.csv")
+    data_blob = bucket.blob("pop_density.csv")
     data_str = data_blob.download_as_text()
     pop_density = pd.read_csv(StringIO(data_str))
     # filter only relevant rows for city
     pop_density = pop_density[pop_density["city"] == query_config['city_official_name']]
+    # add helper col for empirical population distribution
+    pop_density["density"] = pop_density["population"] / pop_density["population"].sum()
     # write filtered population density to GCS
     bucket = storage_client.bucket("bucket-city-population-grids")
     blob_name = f"pop_density_{query_config['city']}-{str(date.today())}.csv"
