@@ -43,16 +43,17 @@ def generate_weighted_pairs_of_points(bucket_city_grids, grid_file):
 
     df = load_city_grid(bucket=bucket_city_grids, file=grid_file)
     sample = df.sample(n=2, weights="density")
-    res = [
+    points = [
         generate_point_in_neighborhood(
             center=Point(row["latitude"], row["longitude"]), radius=500
         )
         for _, row in sample.iterrows()
     ]
-    return res
+    city_name = df.iloc[0]["city"]
+    return points, city_name
 
 
-def enrich_point(point: Point) -> dict:
+def enrich_point(point: Point, city: str) -> dict:
     res = {}
     res["latitude"], res["longitude"], altitude = point
 
@@ -74,7 +75,7 @@ def enrich_point(point: Point) -> dict:
         res["neighbourhood"] = address.get("neighbourhood")
         res["suburb"] = address.get("suburb")
         res["city_district"] = address.get("city_district")
-        res["city"] = address.get("city")
+        res["city"] = city
         res["state"] = address.get("state")
         res["postcode"] = address.get("postcode")
         res["country"] = address.get("country")
@@ -240,11 +241,11 @@ def journey(event, context):
     stops_table_staging = []
 
     for grid_file in city_grids:
-        points = generate_weighted_pairs_of_points(
+        points, city_name = generate_weighted_pairs_of_points(
             bucket_city_grids=bucket_city_grids, grid_file=grid_file
         )
 
-        enriched_points = [enrich_point(p) for p in points]
+        enriched_points = [enrich_point(point=p, city=city_name) for p in points]
 
         stop_rows, id_origin, id_destination = generate_stop_rows(
             enriched_points=enriched_points
