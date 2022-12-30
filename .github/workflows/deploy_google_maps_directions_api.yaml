@@ -26,11 +26,11 @@ jobs:
       - id: "deploy"
         uses: "google-github-actions/deploy-cloud-functions@v0"
         with:
-          name: "hello_pubsub"
+          name: "journey"
           runtime: python310
           env_vars: GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
           source_dir: "./google-maps-directions-api/"
-          entry_point: "hello_pubsub"
+          entry_point: "journey"
           max_instances: 1
           event_trigger_type: "providers/cloud.pubsub/eventTypes/topic.publish"
           event_trigger_resource: "projects/tokyo-house-366821/topics/pubsub-topic-google-directions-trigger"

@@ -213,14 +213,13 @@ def write_to_bigquery(client, table_id, data):
         )
 
 
-def hello_pubsub(event, context):
+def journey(event, context):
     """
     Function that loads city boundary geojson files
     and for each samples samples random points (distributed according to mobile data).
     Then request google maps directions api for time from point A to B for various
     means of travel. Save output to database.
     """
-
     # setup logging
     logging_client = google.cloud.logging.Client()
     logging_client.setup_logging()
