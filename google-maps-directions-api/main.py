@@ -184,8 +184,8 @@ def hello_pubsub(event, context):
     means of travel. Save output to database.
     """
     bucket_name = "bucket-city-population-grids"
-    bigquery_distance_table_id = "journey_durations"
-    bigquery_meta_table_id = "journey_metadata"
+    bigquery_distance_table_id = "tokyo-house-366821.dataset_journey.journey_durations"
+    bigquery_meta_table_id = "tokyo-house-366821.dataset_journey.journey_metadata"
     maps_api_key = os.environ["GOOGLE_MAPS_API_KEY"]
 
     gcs_client = storage.Client()
