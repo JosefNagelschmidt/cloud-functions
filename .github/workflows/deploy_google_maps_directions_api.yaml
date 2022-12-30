@@ -28,6 +28,7 @@ jobs:
         with:
           name: "hello_pubsub"
           runtime: python310
+          env_vars: GOOGLE_MAPS_API_KEY=${{ secrets.GOOGLE_MAPS_API_KEY }}
           source_dir: "./google-maps-directions-api/"
           entry_point: "hello_pubsub"
           max_instances: 1
