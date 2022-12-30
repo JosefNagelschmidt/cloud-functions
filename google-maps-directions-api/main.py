@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from io import StringIO
 from random import random
 import os
+import google.cloud.logging
 
 import googlemaps
 import pandas as pd
@@ -28,7 +29,13 @@ def generate_point_in_neighborhood(center: Point, radius: int) -> Point:
 
 
 def load_city_grid(bucket, file) -> pd.DataFrame:
-    data_str = bucket.blob(file).download_as_text()
+    try:
+        data_str = bucket.blob(file).download_as_text()
+    except Exception:
+        logging.error(
+            f"Encountered an error while loading city grid from bucket: {bucket}, and file: {file}."
+        )
+        sys.exit()
     return pd.read_csv(StringIO(data_str))
 
 
@@ -55,39 +62,65 @@ def enrich_point(point: Point) -> dict:
         r = requests.get(query)
         r.raise_for_status()
     except requests.exceptions.HTTPError as e:
-        print(e.response.text)
+        logging.error(e.response.text)
         sys.exit()
 
     geodata = r.json()
 
-    res.update(geodata["address"])
-    del res["ISO3166-2-lvl4"]
+    if geodata.get("address") is not None:
+        address = geodata.get("address")
+        res["house_number"] = address.get("house_number")
+        res["road"] = address.get("road")
+        res["neighbourhood"] = address.get("neighbourhood")
+        res["suburb"] = address.get("suburb")
+        res["city_district"] = address.get("city_district")
+        res["city"] = address.get("city")
+        res["state"] = address.get("state")
+        res["postcode"] = address.get("postcode")
+        res["country"] = address.get("country")
+        res["country_code"] = address.get("country_code")
+
+    else:
+        logging.error(f"Encountered an error while retrieving address of {geodata}.")
+        sys.exit()
+
     return res
 
 
-def generate_meta_table_rows(enriched_points: list[dict]):
-    insert_meta_table = []
+def generate_stop_rows(enriched_points: list[dict]):
+    rows = []
 
-    id_origin = datetime.now()
-    id_destination = id_origin + timedelta(seconds=1)
+    insertion_time_origin = datetime.now()
+    insertion_time_destination = insertion_time_origin + timedelta(seconds=1)
 
-    origin = {"id": id_origin.strftime(format="%Y-%m-%d %H:%M:%S.%f"), "type": "origin"}
+    id_origin = int(round(datetime.timestamp(insertion_time_origin)))
+    id_destination = int(round(datetime.timestamp(insertion_time_destination)))
+
+    origin = {
+        "id": id_origin,
+        "insertion_time": insertion_time_origin.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
+        "type": "origin",
+    }
     destination = {
-        "id": id_destination.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
+        "id": id_destination,
+        "insertion_time": insertion_time_destination.strftime(
+            format="%Y-%m-%d %H:%M:%S.%f"
+        ),
         "type": "destination",
     }
+
     origin.update(enriched_points[0])
     destination.update(enriched_points[1])
 
-    insert_meta_table.append(origin)
-    insert_meta_table.append(destination)
+    rows.append(origin)
+    rows.append(destination)
 
-    return insert_meta_table, id_origin, id_destination
+    return rows, id_origin, id_destination
 
 
-def generate_distance_table_rows(
-    id_origin: datetime,
-    id_destination: datetime,
+def generate_journey_rows(
+    id_origin: int,
+    id_destination: int,
     client: googlemaps.Client,
     enriched_points: list[dict],
 ):
@@ -157,14 +190,15 @@ def generate_distance_table_rows(
     # END BICYCLING
 
     row = {
-        "id_origin": id_origin.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
-        "id_destination": id_destination.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
-        "driving_duration_in_s": driving_duration_in_s,
-        "transit_duration_in_s": transit_duration_in_s,
-        "bicycling_duration_in_s": bicycling_duration_in_s,
-        "driving_distance_in_m": driving_distance_in_m,
-        "transit_distance_in_m": transit_distance_in_m,
-        "bicycling_distance_in_m": bicycling_distance_in_m,
+        "origin": id_origin,
+        "destination": id_destination,
+        "insertion_time": now.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
+        "driving_duration": driving_duration_in_s,
+        "transit_duration": transit_duration_in_s,
+        "bicycling_duration": bicycling_duration_in_s,
+        "driving_distance": driving_distance_in_m,
+        "transit_distance": transit_distance_in_m,
+        "bicycling_distance": bicycling_distance_in_m,
     }
     return row
 
@@ -186,9 +220,14 @@ def hello_pubsub(event, context):
     Then request google maps directions api for time from point A to B for various
     means of travel. Save output to database.
     """
+
+    # setup logging
+    logging_client = google.cloud.logging.Client()
+    logging_client.setup_logging()
+
     bucket_name = "bucket-city-population-grids"
-    bigquery_distance_table_id = "tokyo-house-366821.dataset_journey.journey_durations"
-    bigquery_meta_table_id = "tokyo-house-366821.dataset_journey.journey_metadata"
+    bigquery_journeys_table_id = "tokyo-house-366821.urban_transport_monitor.journeys"
+    bigquery_stops_table_id = "tokyo-house-366821.urban_transport_monitor.stops"
     maps_api_key = os.environ["GOOGLE_MAPS_API_KEY"]
 
     gcs_client = storage.Client()
@@ -198,8 +237,8 @@ def hello_pubsub(event, context):
     bigquery_client = bigquery.Client()
     gmaps = googlemaps.Client(key=maps_api_key)
 
-    distance_table_staging = []
-    meta_table_staging = []
+    journeys_table_staging = []
+    stops_table_staging = []
 
     for grid_file in city_grids:
         points = generate_weighted_pairs_of_points(
@@ -208,27 +247,27 @@ def hello_pubsub(event, context):
 
         enriched_points = [enrich_point(p) for p in points]
 
-        insert_meta_table, id_origin, id_destination = generate_meta_table_rows(
+        stop_rows, id_origin, id_destination = generate_stop_rows(
             enriched_points=enriched_points
         )
-        meta_table_staging.extend(insert_meta_table)
+        stops_table_staging.extend(stop_rows)
 
-        distance_table_row = generate_distance_table_rows(
+        journey_rows = generate_journey_rows(
             id_origin=id_origin,
             id_destination=id_destination,
             client=gmaps,
             enriched_points=enriched_points,
         )
-        distance_table_staging.append(distance_table_row)
+        journeys_table_staging.append(journey_rows)
 
     write_to_bigquery(
         client=bigquery_client,
-        table_id=bigquery_distance_table_id,
-        data=distance_table_staging,
+        table_id=bigquery_journeys_table_id,
+        data=journeys_table_staging,
     )
 
     write_to_bigquery(
         client=bigquery_client,
-        table_id=bigquery_meta_table_id,
-        data=meta_table_staging,
+        table_id=bigquery_stops_table_id,
+        data=stops_table_staging,
     )
