@@ -71,8 +71,11 @@ def generate_meta_table_rows(enriched_points: list[dict]):
     id_origin = datetime.now()
     id_destination = id_origin + timedelta(seconds=1)
 
-    origin = {"id": id_origin, "type": "origin"}
-    destination = {"id": id_destination, "type": "destination"}
+    origin = {"id": id_origin.strftime(format="%Y-%m-%d %H:%M:%S.%f"), "type": "origin"}
+    destination = {
+        "id": id_destination.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
+        "type": "destination",
+    }
     origin.update(enriched_points[0])
     destination.update(enriched_points[1])
 
@@ -154,8 +157,8 @@ def generate_distance_table_rows(
     # END BICYCLING
 
     row = {
-        "id_origin": id_origin,
-        "id_destination": id_destination,
+        "id_origin": id_origin.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
+        "id_destination": id_destination.strftime(format="%Y-%m-%d %H:%M:%S.%f"),
         "driving_duration_in_s": driving_duration_in_s,
         "transit_duration_in_s": transit_duration_in_s,
         "bicycling_duration_in_s": bicycling_duration_in_s,
